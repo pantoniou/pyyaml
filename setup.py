@@ -287,7 +287,8 @@ if __name__ == '__main__':
         ext_modules=[
             Extension('yaml._yaml', ['yaml/_yaml.pyx'],
                 'libyaml', "LibYAML bindings", LIBYAML_CHECK,
-                libraries=['yaml']),
+                libraries=['fyaml-0.7'],
+                language="c")
         ],
 
         distclass=Distribution,

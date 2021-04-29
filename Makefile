@@ -29,6 +29,9 @@ test: build
 testext: buildext
 	${PYTHON} tests/lib/test_build_ext.py ${TEST}
 
+testextf: buildext
+	YAML_TEST_VERBOSE=y ${PYTHON} tests/lib/test_build_ext_libfyaml.py ${TEST}
+
 testall:
 	${PYTHON} setup.py test
 
