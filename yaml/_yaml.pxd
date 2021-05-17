@@ -187,6 +187,8 @@ cdef extern from "_yaml.h":
 
     char* fy_error_module_to_string(fy_error_module module)
 
+    bint fy_event_is_implicit(fy_event* fye)
+
     bint fy_document_event_is_implicit(fy_event* fye)
 
     fy_parser* fy_parser_create(fy_parse_cfg* cfg)
@@ -904,6 +906,8 @@ cdef extern from "_yaml.h":
     bint fy_document_state_end_implicit(fy_document_state* fyds)
 
     fy_tag* fy_document_state_tag_directive_iterate(fy_document_state* fyds, void** prevp)
+
+    bint fy_document_state_tag_is_default(fy_document_state* fyds, fy_tag* tag)
 
     fy_document_state* fy_parser_get_document_state(fy_parser* fyp)
 

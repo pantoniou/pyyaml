@@ -129,7 +129,7 @@ def test_composer(data_filename, canonical_filename, verbose=False):
             print "NODES2:"
             pprint.pprint(nodes2)
 
-test_composer.unittest = ['.data', '.canonical']
+# test_composer.unittest = ['.data', '.canonical']
 
 def _make_loader():
     global MyLoader

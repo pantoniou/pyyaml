@@ -34,3 +34,79 @@ if __name__ == '__main__':
         """, Loader=yaml.CLoader)
     assert (obj != None)
     print obj
+
+    obj = yaml.load("""
+        foo: bar
+        baz: frooz
+        seq: [ 1, 2, 3 ]
+        """, Loader=yaml.CLoader)
+    assert (obj != None)
+    print obj
+
+    obj = yaml.load("""
+        - &foo Hesperiidae
+        - *foo
+        """, Loader=yaml.CLoader)
+    assert (obj != None)
+    print obj
+
+    obj = yaml.load("""
+        - Hesperiidae
+        - !!str "10"
+        """, Loader=yaml.CLoader)
+    assert (obj != None)
+    print obj
+
+    obj = yaml.load("""
+        boolean: !!bool "true"
+        integer: !!int "3"
+        float: !!float "3.14"
+        """, Loader=yaml.CLoader)
+    assert (obj != None)
+    print obj
+
+    document = """
+                foo: bar
+                "bar":
+                  - baz
+                  - 1
+                test: |
+                  literal
+               """
+
+    print "scan, python loader"
+    tokens = yaml.scan(document, Loader=yaml.Loader)
+    for token in tokens:
+        print "  ", token
+
+    print "scan, c loader"
+    tokens = yaml.scan(document, Loader=yaml.CLoader)
+    for token in tokens:
+        print "  ", token
+
+    print "parse, python loader"
+    events = yaml.parse(document, Loader=yaml.Loader)
+    for event in events:
+        print "  ", event
+
+    print "parse, c loader"
+    events = yaml.parse(document, Loader=yaml.CLoader)
+    for event in events:
+        print "  ", event
+
+    document = """
+        ? |-
+          foo
+        : |-
+          bar
+        """
+
+    print "parse, python loader"
+    events = yaml.parse(document, Loader=yaml.Loader)
+    for event in events:
+        print "  ", event
+
+    print "parse, c loader"
+    events = yaml.parse(document, Loader=yaml.CLoader)
+    for event in events:
+        print "  ", event

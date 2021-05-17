@@ -46,6 +46,27 @@ ScalarNode = yaml.nodes.ScalarNode
 SequenceNode = yaml.nodes.SequenceNode
 MappingNode = yaml.nodes.MappingNode
 
+StreamStartToken = yaml.tokens.StreamStartToken
+StreamEndToken = yaml.tokens.StreamEndToken
+DirectiveToken = yaml.tokens.DirectiveToken
+DocumentStartToken = yaml.tokens.DocumentStartToken
+DocumentEndToken = yaml.tokens.DocumentEndToken
+BlockSequenceStartToken = yaml.tokens.BlockSequenceStartToken
+BlockMappingStartToken = yaml.tokens.BlockMappingStartToken
+BlockEndToken = yaml.tokens.BlockEndToken
+FlowSequenceStartToken = yaml.tokens.FlowSequenceStartToken
+FlowMappingStartToken = yaml.tokens.FlowMappingStartToken
+FlowSequenceEndToken = yaml.tokens.FlowSequenceEndToken
+FlowMappingEndToken = yaml.tokens.FlowMappingEndToken
+KeyToken = yaml.tokens.KeyToken
+ValueToken = yaml.tokens.ValueToken
+BlockEntryToken = yaml.tokens.BlockEntryToken
+FlowEntryToken = yaml.tokens.FlowEntryToken
+AliasToken = yaml.tokens.AliasToken
+AnchorToken = yaml.tokens.AnchorToken
+TagToken = yaml.tokens.TagToken
+ScalarToken = yaml.tokens.ScalarToken
+
 cdef class Mark:
     cdef readonly object name
     cdef readonly size_t index
@@ -205,365 +226,551 @@ cdef class CParser:
         #     raise ValueError(u"no parser error")
 
     def raw_scan(self):
-        # printf("raw_scan\n")
-        # cdef yaml_token_t token
-        # cdef int done
-        # cdef int count
-        # count = 0
-        # done = 0
-        # while done == 0:
-        #     if yaml_parser_scan(&self.parser, &token) == 0:
-        #         error = self._parser_error()
-        #         raise error
-        #     if token.type == YAML_NO_TOKEN:
-        #         done = 1
-        #     else:
-        #         count = count+1
-        #     yaml_token_delete(&token)
-        # return count
-        return 0
+        cdef fy_token *token
+        cdef int count
+        cdef fy_token_type type
+
+        count = 0
+        while True:
+            token = fy_scan(self.parser)
+
+            if token == NULL:
+                if PY_MAJOR_VERSION < 3:
+                    raise ReaderError(self.stream_name, 0, 0, '?', "problem")
+                else:
+                    raise ReaderError(self.stream_name, 0, 0, u'?', PyUnicode_FromString("problem"))
+
+            type = fy_token_get_type(token)
+            # we don't use the token
+            fy_scan_token_free(self.parser, token)
+
+            if type == FYTT_NONE:
+                break
+
+            count = count+1
+
+        return count
 
     cdef object _scan(self):
-        # printf("_scan\n")
-        # cdef yaml_token_t token
-        # if yaml_parser_scan(&self.parser, &token) == 0:
-        #     error = self._parser_error()
-        #     raise error
-        # token_object = self._token_to_object(&token)
-        # yaml_token_delete(&token)
-        # return token_object
-        return None
+        cdef fy_token *token
+
+        token = fy_scan(self.parser)
+        if token == NULL:
+            return None
+            if PY_MAJOR_VERSION < 3:
+                raise ReaderError(self.stream_name, 0, 0, '?', "problem")
+            else:
+                raise ReaderError(self.stream_name, 0, 0, u'?', PyUnicode_FromString("problem"))
+
+        token_object = self._token_to_object(token)
+        fy_scan_token_free(self.parser, token)
+
+        return token_object
 
     cdef object _token_to_object(self, fy_token *token):
-        # printf("_token_to_object\n")
-        return None
-        # start_mark = Mark(self.stream_name,
-        #         token.start_mark.index,
-        #         token.start_mark.line,
-        #         token.start_mark.column,
-        #         None, None)
-        # end_mark = Mark(self.stream_name,
-        #         token.end_mark.index,
-        #         token.end_mark.line,
-        #         token.end_mark.column,
-        #         None, None)
-        # if token.type == YAML_NO_TOKEN:
-        #      return None
-        # elif token.type == YAML_STREAM_START_TOKEN:
-        #     encoding = None
-        #     if token.data.stream_start.encoding == YAML_UTF8_ENCODING:
-        #         if self.unicode_source == 0:
-        #             encoding = u"utf-8"
-        #     elif token.data.stream_start.encoding == YAML_UTF16LE_ENCODING:
-        #         encoding = u"utf-16-le"
-        #     elif token.data.stream_start.encoding == YAML_UTF16BE_ENCODING:
-        #         encoding = u"utf-16-be"
-        #     return StreamStartToken(start_mark, end_mark, encoding)
-        # elif token.type == YAML_STREAM_END_TOKEN:
-        #     return StreamEndToken(start_mark, end_mark)
-        # elif token.type == YAML_VERSION_DIRECTIVE_TOKEN:
-        #     return DirectiveToken(u"YAML",
-        #             (token.data.version_directive.major,
-        #                 token.data.version_directive.minor),
-        #             start_mark, end_mark)
-        # elif token.type == YAML_TAG_DIRECTIVE_TOKEN:
-        #     handle = PyUnicode_FromString(token.data.tag_directive.handle)
-        #     prefix = PyUnicode_FromString(token.data.tag_directive.prefix)
-        #     return DirectiveToken(u"TAG", (handle, prefix),
-        #             start_mark, end_mark)
-        # elif token.type == YAML_DOCUMENT_START_TOKEN:
-        #     return DocumentStartToken(start_mark, end_mark)
-        # elif token.type == YAML_DOCUMENT_END_TOKEN:
-        #     return DocumentEndToken(start_mark, end_mark)
-        # elif token.type == YAML_BLOCK_SEQUENCE_START_TOKEN:
-        #     return BlockSequenceStartToken(start_mark, end_mark)
-        # elif token.type == YAML_BLOCK_MAPPING_START_TOKEN:
-        #     return BlockMappingStartToken(start_mark, end_mark)
-        # elif token.type == YAML_BLOCK_END_TOKEN:
-        #     return BlockEndToken(start_mark, end_mark)
-        # elif token.type == YAML_FLOW_SEQUENCE_START_TOKEN:
-        #     return FlowSequenceStartToken(start_mark, end_mark)
-        # elif token.type == YAML_FLOW_SEQUENCE_END_TOKEN:
-        #     return FlowSequenceEndToken(start_mark, end_mark)
-        # elif token.type == YAML_FLOW_MAPPING_START_TOKEN:
-        #     return FlowMappingStartToken(start_mark, end_mark)
-        # elif token.type == YAML_FLOW_MAPPING_END_TOKEN:
-        #     return FlowMappingEndToken(start_mark, end_mark)
-        # elif token.type == YAML_BLOCK_ENTRY_TOKEN:
-        #     return BlockEntryToken(start_mark, end_mark)
-        # elif token.type == YAML_FLOW_ENTRY_TOKEN:
-        #     return FlowEntryToken(start_mark, end_mark)
-        # elif token.type == YAML_KEY_TOKEN:
-        #     return KeyToken(start_mark, end_mark)
-        # elif token.type == YAML_VALUE_TOKEN:
-        #     return ValueToken(start_mark, end_mark)
-        # elif token.type == YAML_ALIAS_TOKEN:
-        #     value = PyUnicode_FromString(token.data.alias.value)
-        #     return AliasToken(value, start_mark, end_mark)
-        # elif token.type == YAML_ANCHOR_TOKEN:
-        #     value = PyUnicode_FromString(token.data.anchor.value)
-        #     return AnchorToken(value, start_mark, end_mark)
-        # elif token.type == YAML_TAG_TOKEN:
-        #     handle = PyUnicode_FromString(token.data.tag.handle)
-        #     suffix = PyUnicode_FromString(token.data.tag.suffix)
-        #     if not handle:
-        #         handle = None
-        #     return TagToken((handle, suffix), start_mark, end_mark)
-        # elif token.type == YAML_SCALAR_TOKEN:
-        #     value = PyUnicode_DecodeUTF8(token.data.scalar.value,
-        #             token.data.scalar.length, 'strict')
-        #     plain = False
-        #     style = None
-        #     if token.data.scalar.style == YAML_PLAIN_SCALAR_STYLE:
-        #         plain = True
-        #         style = u''
-        #     elif token.data.scalar.style == YAML_SINGLE_QUOTED_SCALAR_STYLE:
-        #         style = u'\''
-        #     elif token.data.scalar.style == YAML_DOUBLE_QUOTED_SCALAR_STYLE:
-        #         style = u'"'
-        #     elif token.data.scalar.style == YAML_LITERAL_SCALAR_STYLE:
-        #         style = u'|'
-        #     elif token.data.scalar.style == YAML_FOLDED_SCALAR_STYLE:
-        #         style = u'>'
-        #     return ScalarToken(value, plain,
-        #             start_mark, end_mark, style)
-        # else:
-        #     if PY_MAJOR_VERSION < 3:
-        #         raise ValueError("unknown token type")
-        #     else:
-        #         raise ValueError(u"unknown token type")
+        cdef const fy_mark *start_mark
+        cdef const fy_mark *end_mark
+        cdef fy_token_type type
+        cdef const char *text
+        cdef size_t textlen
+        cdef const fy_version *vers
+        cdef const char *prefix
+        cdef const char *handle
+        cdef const char *suffix
+        cdef fy_scalar_style style
+
+        start_mark = fy_token_start_mark(token)
+        end_mark = fy_token_end_mark(token)
+
+        start_markp = Mark(self.stream_name, start_mark[0].input_pos, start_mark[0].line, start_mark[0].column, None, None)
+        end_markp = Mark(self.stream_name, end_mark[0].input_pos, end_mark[0].line, end_mark[0].column, None, None)
+
+        type = fy_token_get_type(token)
+
+        if type == FYTT_NONE:
+            return None
+
+        if type == FYTT_STREAM_START:
+            encoding = None
+            # libfyaml only does utf-8
+            if PY_MAJOR_VERSION < 3:
+                encoding = "utf-8"
+            else:
+                encoding = u"utf-8"
+            return StreamStartToken(start_markp, end_markp, encoding)
+
+        if type == FYTT_STREAM_END:
+            return StreamEndToken(start_markp, end_markp)
+
+        if type == FYTT_VERSION_DIRECTIVE:
+
+            vers = fy_version_directive_token_version(token)
+            if vers == NULL:
+                raise MemoryError
+            return DirectiveToken(u"YAML", (vers[0].major, vers[0].minor), start_markp, end_markp)
+
+        if type == FYTT_TAG_DIRECTIVE:
+
+            prefix = fy_tag_directive_token_prefix0(token)
+            if prefix == NULL:
+                raise MemoryError
+
+            handle = fy_tag_directive_token_handle0(token)
+            if handle == NULL:
+                raise MemoryError
+
+            prefixp = PyUnicode_FromString(prefix)
+            handlep = PyUnicode_FromString(handle)
+
+            return DirectiveToken(u"TAG", (handlep, prefixp), start_markp, end_markp)
+
+        if type == FYTT_DOCUMENT_START:
+            return DocumentStartToken(start_markp, end_markp)
+
+        if type == FYTT_DOCUMENT_END:
+            return DocumentEndToken(start_markp, end_markp)
+
+        if type == FYTT_BLOCK_SEQUENCE_START:
+            return BlockSequenceStartToken(start_markp, end_markp)
+
+        if type == FYTT_BLOCK_MAPPING_START:
+            return BlockMappingStartToken(start_markp, end_markp)
+
+        if type == FYTT_BLOCK_END:
+            return BlockEndToken(start_markp, end_markp)
+
+        if type == FYTT_FLOW_SEQUENCE_START:
+            return FlowSequenceStartToken(start_markp, end_markp)
+
+        if type == FYTT_FLOW_SEQUENCE_END:
+            return FlowSequenceEndToken(start_markp, end_markp)
+
+        if type == FYTT_FLOW_MAPPING_START:
+            return FlowMappingStartToken(start_markp, end_markp)
+
+        if type == FYTT_FLOW_MAPPING_END:
+            return FlowMappingEndToken(start_markp, end_markp)
+
+        if type == FYTT_BLOCK_ENTRY:
+            return BlockEntryToken(start_markp, end_markp)
+
+        if type == FYTT_FLOW_ENTRY:
+            return FlowEntryToken(start_markp, end_markp)
+
+        if type == FYTT_KEY:
+            return KeyToken(start_markp, end_markp)
+
+        if type == FYTT_VALUE:
+            return ValueToken(start_markp, end_markp)
+
+        if type == FYTT_ALIAS:
+            text = fy_token_get_text0(token)
+            if text == NULL:
+                raise MemoryError
+
+            value = PyUnicode_FromString(text)
+            return AliasToken(value, start_markp, end_markp)
+
+        if type == FYTT_ANCHOR:
+
+            text = fy_token_get_text0(token)
+            if text == NULL:
+                raise MemoryError
+
+            valuep = PyUnicode_FromString(text)
+            return AnchorToken(valuep, start_markp, end_markp)
+
+        if type == FYTT_TAG:
+
+            handle = fy_tag_token_handle0(token)
+            if handle == NULL:
+                raise MemoryError
+
+            suffix = fy_tag_token_suffix0(token)
+            if suffix == NULL:
+                raise MemoryError
+
+            handlep = PyUnicode_FromString(handle)
+            suffixp = PyUnicode_FromString(suffix)
+
+            if suffixp == u'' or suffixp == '':
+                suffixp = handlep
+                handlep = None
+
+            if handlep == u'' or handlep == '':
+                handlep = None
+
+            return TagToken((handlep, suffixp), start_markp, end_markp)
+
+        if type == FYTT_SCALAR:
+
+            text = fy_token_get_text(token, &textlen)
+            if text == NULL:
+                raise MemoryError
+
+            value = PyUnicode_DecodeUTF8(text, textlen, 'strict')
+            plain = False
+            stylep = None
+
+            style = fy_scalar_token_get_style(token)
+
+            if style == FYSS_PLAIN:
+                plain = True
+                # stylep = u'' , plain as None
+            else:
+                if PY_MAJOR_VERSION < 3:
+                    if style == FYSS_SINGLE_QUOTED:
+                        stylep = '\''
+                    elif style == FYSS_DOUBLE_QUOTED:
+                        stylep = '"'
+                    elif style == FYSS_LITERAL:
+                        stylep = '|'
+                    elif style == FYSS_FOLDED:
+                        stylep = '>'
+                else:
+                    if style == FYSS_SINGLE_QUOTED:
+                        stylep = u'\''
+                    elif style == FYSS_DOUBLE_QUOTED:
+                        stylep = u'"'
+                    elif style == FYSS_LITERAL:
+                        stylep = u'|'
+                    elif style == FYSS_FOLDED:
+                        stylep = u'>'
+
+            return ScalarToken(value, plain, start_markp, end_markp, stylep)
+
+        if PY_MAJOR_VERSION < 3:
+            raise ValueError("unknown token type")
+        else:
+            raise ValueError(u"unknown token type")
 
     def get_token(self):
-        # printf("get_token\n")
-        # if self.current_token is not None:
-        #     value = self.current_token
-        #     self.current_token = None
-        # else:
-        #     value = self._scan()
-        # return value
-        return None
+        if self.current_token is not None:
+            value = self.current_token
+            self.current_token = None
+        else:
+            value = self._scan()
+        return value
 
     def peek_token(self):
-        # printf("peek_token\n")
-        # if self.current_token is None:
-        #     self.current_token = self._scan()
-        # return self.current_token
-        return None
+        if self.current_token is None:
+            self.current_token = self._scan()
+        return self.current_token
 
     def check_token(self, *choices):
-        # printf("check_token\n")
-        # if self.current_token is None:
-        #     self.current_token = self._scan()
-        # if self.current_token is None:
-        #     return False
-        # if not choices:
-        #     return True
-        # token_class = self.current_token.__class__
-        # for choice in choices:
-        #     if token_class is choice:
-        #         return True
-        # return False
-        return None
+        if self.current_token is None:
+            self.current_token = self._scan()
+        if self.current_token is None:
+            return False
+        if not choices:
+            return True
+        token_class = self.current_token.__class__
+        for choice in choices:
+            if token_class is choice:
+                return True
+        return False
 
     def raw_parse(self):
-        # printf("raw_parse\n")
-        # cdef yaml_event_t event
-        # cdef int done
-        # cdef int count
-        # count = 0
-        # done = 0
-        # while done == 0:
-        #     if yaml_parser_parse(&self.parser, &event) == 0:
-        #         error = self._parser_error()
-        #         raise error
-        #     if event.type == YAML_NO_EVENT:
-        #         done = 1
-        #     else:
-        #         count = count+1
-        #     yaml_event_delete(&event)
-        # return count
-        return 0
-     
+        cdef fy_event *event
+        cdef fy_event_type type
+        cdef int count
+
+        count = 0
+        while True:
+            event = fy_parser_parse(self.parser)
+            if event == NULL:
+                if PY_MAJOR_VERSION < 3:
+                    raise ParserError("unexpected NULL return from fy_parser_parse")
+                else:
+                    raise ParserError(u"unexpected NULL return from fy_parser_parse")
+
+            type = event.type
+            fy_parser_event_free(self.parser, event)
+
+            if type == FYET_NONE:
+                break
+
+            count = count+1
+
+        return count
+
     cdef object _parse(self):
-        # printf("_parse\n")
-        # cdef yaml_event_t event
-        # if yaml_parser_parse(&self.parser, &event) == 0:
-        #     error = self._parser_error()
-        #     raise error
-        # event_object = self._event_to_object(&event)
-        # yaml_event_delete(&event)
-        # return event_object
-        return None
-     
-    cdef object _event_to_object(self, _fy_event *event):
-        # printf("_event_to_object\n")
-        # cdef yaml_tag_directive_t *tag_directive
-        # start_mark = Mark(self.stream_name,
-        #         event.start_mark.index,
-        #         event.start_mark.line,
-        #         event.start_mark.column,
-        #         None, None)
-        # end_mark = Mark(self.stream_name,
-        #         event.end_mark.index,
-        #         event.end_mark.line,
-        #         event.end_mark.column,
-        #         None, None)
-        # if event.type == YAML_NO_EVENT:
-        #     return None
-        # elif event.type == YAML_STREAM_START_EVENT:
-        #     encoding = None
-        #     if event.data.stream_start.encoding == YAML_UTF8_ENCODING:
-        #         if self.unicode_source == 0:
-        #             encoding = u"utf-8"
-        #     elif event.data.stream_start.encoding == YAML_UTF16LE_ENCODING:
-        #         encoding = u"utf-16-le"
-        #     elif event.data.stream_start.encoding == YAML_UTF16BE_ENCODING:
-        #         encoding = u"utf-16-be"
-        #     return StreamStartEvent(start_mark, end_mark, encoding)
-        # elif event.type == YAML_STREAM_END_EVENT:
-        #     return StreamEndEvent(start_mark, end_mark)
-        # elif event.type == YAML_DOCUMENT_START_EVENT:
-        #     explicit = False
-        #     if event.data.document_start.implicit == 0:
-        #         explicit = True
-        #     version = None
-        #     if event.data.document_start.version_directive != NULL:
-        #         version = (event.data.document_start.version_directive.major,
-        #                 event.data.document_start.version_directive.minor)
-        #     tags = None
-        #     if event.data.document_start.tag_directives.start != NULL:
-        #         tags = {}
-        #         tag_directive = event.data.document_start.tag_directives.start
-        #         while tag_directive != event.data.document_start.tag_directives.end:
-        #             handle = PyUnicode_FromString(tag_directive.handle)
-        #             prefix = PyUnicode_FromString(tag_directive.prefix)
-        #             tags[handle] = prefix
-        #             tag_directive = tag_directive+1
-        #     return DocumentStartEvent(start_mark, end_mark,
-        #             explicit, version, tags)
-        # elif event.type == YAML_DOCUMENT_END_EVENT:
-        #     explicit = False
-        #     if event.data.document_end.implicit == 0:
-        #         explicit = True
-        #     return DocumentEndEvent(start_mark, end_mark, explicit)
-        # elif event.type == YAML_ALIAS_EVENT:
-        #     anchor = PyUnicode_FromString(event.data.alias.anchor)
-        #     return AliasEvent(anchor, start_mark, end_mark)
-        # elif event.type == YAML_SCALAR_EVENT:
-        #     anchor = None
-        #     if event.data.scalar.anchor != NULL:
-        #         anchor = PyUnicode_FromString(event.data.scalar.anchor)
-        #     tag = None
-        #     if event.data.scalar.tag != NULL:
-        #         tag = PyUnicode_FromString(event.data.scalar.tag)
-        #     value = PyUnicode_DecodeUTF8(event.data.scalar.value,
-        #             event.data.scalar.length, 'strict')
-        #     plain_implicit = False
-        #     if event.data.scalar.plain_implicit == 1:
-        #         plain_implicit = True
-        #     quoted_implicit = False
-        #     if event.data.scalar.quoted_implicit == 1:
-        #         quoted_implicit = True
-        #     style = None
-        #     if event.data.scalar.style == YAML_PLAIN_SCALAR_STYLE:
-        #         style = u''
-        #     elif event.data.scalar.style == YAML_SINGLE_QUOTED_SCALAR_STYLE:
-        #         style = u'\''
-        #     elif event.data.scalar.style == YAML_DOUBLE_QUOTED_SCALAR_STYLE:
-        #         style = u'"'
-        #     elif event.data.scalar.style == YAML_LITERAL_SCALAR_STYLE:
-        #         style = u'|'
-        #     elif event.data.scalar.style == YAML_FOLDED_SCALAR_STYLE:
-        #         style = u'>'
-        #     return ScalarEvent(anchor, tag,
-        #             (plain_implicit, quoted_implicit),
-        #             value, start_mark, end_mark, style)
-        # elif event.type == YAML_SEQUENCE_START_EVENT:
-        #     anchor = None
-        #     if event.data.sequence_start.anchor != NULL:
-        #         anchor = PyUnicode_FromString(event.data.sequence_start.anchor)
-        #     tag = None
-        #     if event.data.sequence_start.tag != NULL:
-        #         tag = PyUnicode_FromString(event.data.sequence_start.tag)
-        #     implicit = False
-        #     if event.data.sequence_start.implicit == 1:
-        #         implicit = True
-        #     flow_style = None
-        #     if event.data.sequence_start.style == YAML_FLOW_SEQUENCE_STYLE:
-        #         flow_style = True
-        #     elif event.data.sequence_start.style == YAML_BLOCK_SEQUENCE_STYLE:
-        #         flow_style = False
-        #     return SequenceStartEvent(anchor, tag, implicit,
-        #             start_mark, end_mark, flow_style)
-        # elif event.type == YAML_MAPPING_START_EVENT:
-        #     anchor = None
-        #     if event.data.mapping_start.anchor != NULL:
-        #         anchor = PyUnicode_FromString(event.data.mapping_start.anchor)
-        #     tag = None
-        #     if event.data.mapping_start.tag != NULL:
-        #         tag = PyUnicode_FromString(event.data.mapping_start.tag)
-        #     implicit = False
-        #     if event.data.mapping_start.implicit == 1:
-        #         implicit = True
-        #     flow_style = None
-        #     if event.data.mapping_start.style == YAML_FLOW_MAPPING_STYLE:
-        #         flow_style = True
-        #     elif event.data.mapping_start.style == YAML_BLOCK_MAPPING_STYLE:
-        #         flow_style = False
-        #     return MappingStartEvent(anchor, tag, implicit,
-        #             start_mark, end_mark, flow_style)
-        # elif event.type == YAML_SEQUENCE_END_EVENT:
-        #     return SequenceEndEvent(start_mark, end_mark)
-        # elif event.type == YAML_MAPPING_END_EVENT:
-        #     return MappingEndEvent(start_mark, end_mark)
-        # else:
-        #     if PY_MAJOR_VERSION < 3:
-        #         raise ValueError("unknown event type")
-        #     else:
-        #         raise ValueError(u"unknown event type")
-        return None
+        cdef fy_event *event
+
+        event = fy_parser_parse(self.parser)
+        if event == NULL:
+            return None
+            if PY_MAJOR_VERSION < 3:
+                raise ParserError("unexpected NULL return from fy_parser_parse")
+            else:
+                raise ParserError(u"unexpected NULL return from fy_parser_parse")
+
+        event_object = self._event_to_object(event)
+        fy_parser_event_free(self.parser, event)
+        return event_object
+
+    cdef object _event_to_object(self, fy_event *event):
+        cdef _fy_event *_event
+        cdef const fy_mark *start_mark
+        cdef const fy_mark *end_mark
+        cdef fy_document_state *fyds
+        cdef const fy_version *vers
+        cdef const fy_tag *tag
+        cdef void *tagiter
+        cdef const char *text
+        cdef size_t textlen
+        cdef fy_event_type type
+        cdef fy_node_style nstyle
+
+        _event = <_fy_event *>event
+
+        start_mark = fy_event_start_mark(event)
+        end_mark = fy_event_end_mark(event)
+
+        if start_mark != NULL:
+            start_markp = Mark(self.stream_name, start_mark[0].input_pos, start_mark[0].line, start_mark[0].column, None, None)
+        else:
+            start_markp = None
+
+        if start_mark != NULL:
+            end_markp = Mark(self.stream_name, end_mark[0].input_pos, end_mark[0].line, end_mark[0].column, None, None)
+        else:
+            end_markp = None
+
+        type = event.type
+
+        if type == FYET_NONE:
+            return None
+
+        if type == FYET_STREAM_START:
+            encoding = None
+            # libfyaml is utf8 only...
+            if PY_MAJOR_VERSION < 3:
+                encoding = "utf-8"
+            else:
+                encoding = u"utf-8"
+            return StreamStartEvent(start_markp, end_markp, encoding)
+
+        if type == FYET_STREAM_END:
+            return StreamEndEvent(start_markp, end_markp)
+
+        if type == FYET_DOCUMENT_START:
+            explicit = False
+            if _event.data.document_start.implicit == 0:
+                explicit = True
+            fyds = _event.data.document_start.document_state
+
+            version = None
+            if fy_document_state_version_explicit(fyds) == True:
+                vers = fy_document_state_version(fyds)
+                version = (vers[0].major, vers[0].minor)
+
+            tags = {}
+            tagsnr = 0
+            if fy_document_state_tags_explicit(fyds) == True:
+                tagiter = NULL
+                while True:
+                    tag = fy_document_state_tag_directive_iterate(fyds, &tagiter)
+                    if tag == NULL:
+                        break
+                    # skip over default tags
+                    implicit = fy_document_state_tag_is_default(fyds, tag)
+                    if implicit == True:
+                        continue
+
+                    handle = PyUnicode_FromString(tag[0].handle)
+                    prefix = PyUnicode_FromString(tag[0].prefix)
+                    tags[handle] = prefix
+                    tagsnr = tagsnr+1
+
+            # if no tags found, set tags to None
+            if tagsnr == 0:
+                tags = None
+
+            return DocumentStartEvent(start_markp, end_markp, explicit, version, tags)
+
+        if type == FYET_DOCUMENT_END:
+            explicit = False
+            if _event.data.document_end.implicit == 0:
+                explicit = True
+            return DocumentEndEvent(start_markp, end_markp, explicit)
+
+        if type == FYET_ALIAS:
+            text = fy_token_get_text0(_event.data.alias.anchor)
+            if text == NULL:
+                raise MemoryError
+            anchor = PyUnicode_FromString(text)
+            return AliasEvent(anchor, start_markp, end_markp)
+
+        if type == FYET_SCALAR:
+
+            anchor = None
+            if _event.data.scalar.anchor != NULL:
+                text = fy_token_get_text0(_event.data.scalar.anchor)
+                if text == NULL:
+                    raise MemoryError
+                anchor = PyUnicode_FromString(text)
+
+            tagp = None
+            if _event.data.scalar.tag != NULL:
+                text = fy_token_get_text0(_event.data.scalar.tag)
+                if text == NULL:
+                    raise MemoryError
+                tagp = PyUnicode_FromString(text)
+
+            text = fy_token_get_text(_event.data.scalar.value, &textlen)
+            if text == NULL:
+                raise MemoryError
+
+            value = PyUnicode_DecodeUTF8(text, textlen, 'strict')
+
+            stylep = None
+            style = fy_token_scalar_style(_event.data.scalar.value)
+
+            if PY_MAJOR_VERSION < 3:
+                if style == FYSS_PLAIN:
+                    stylep = ''
+                elif style == FYSS_SINGLE_QUOTED:
+                    stylep = '\''
+                elif style == FYSS_DOUBLE_QUOTED:
+                    stylep = '"'
+                elif style == FYSS_LITERAL:
+                    stylep = '|'
+                elif style == FYSS_FOLDED:
+                    stylep = '>'
+
+                if (style == FYSS_PLAIN and tagp is None) or tagp == u'!':
+                    implicit = (True, False)
+                elif tagp is None:
+                    implicit = (False, True)
+                else:
+                    implicit = (False, False)
+
+            else:
+                if style == FYSS_PLAIN:
+                    stylep = u''
+                elif style == FYSS_SINGLE_QUOTED:
+                    stylep = u'\''
+                elif style == FYSS_DOUBLE_QUOTED:
+                    stylep = u'"'
+                elif style == FYSS_LITERAL:
+                    stylep = u'|'
+                elif style == FYSS_FOLDED:
+                    stylep = u'>'
+
+                if (style == FYSS_PLAIN and tagp is None) or tagp == '!':
+                    implicit = (True, False)
+                elif tagp is None:
+                    implicit = (False, True)
+                else:
+                    implicit = (False, False)
+
+            return ScalarEvent(anchor, tagp, implicit, value, start_markp, end_markp, stylep)
+
+        if type == FYET_SEQUENCE_START:
+            anchor = None
+            if _event.data.sequence_start.anchor != NULL:
+                text = fy_token_get_text0(_event.data.sequence_start.anchor)
+                if text == NULL:
+                    raise MemoryError
+                anchor = PyUnicode_FromString(text)
+
+            tagp = None
+            if _event.data.sequence_start.tag != NULL:
+                text = fy_token_get_text0(_event.data.sequence_start.tag)
+                if text == NULL:
+                    raise MemoryError
+                tagp = PyUnicode_FromString(text)
+
+            if PY_MAJOR_VERSION < 3:
+                implicit = (tagp is None or tagp == u'!')
+            else:
+                implicit = (tagp is None or tagp == '!')
+
+            flow_style = None
+            nstyle = fy_event_get_node_style(event)
+            if nstyle == FYNS_FLOW:
+                flow_style = True
+            elif nstyle == FYNS_BLOCK:
+                flow_style = False
+
+            return SequenceStartEvent(anchor, tagp, implicit, start_markp, end_markp, flow_style)
+
+        if type == FYET_MAPPING_START:
+            anchor = None
+            if _event.data.mapping_start.anchor != NULL:
+                text = fy_token_get_text0(_event.data.mapping_start.anchor)
+                if text == NULL:
+                    raise MemoryError
+                anchor = PyUnicode_FromString(text)
+
+            tagp = None
+            if _event.data.mapping_start.tag != NULL:
+                text = fy_token_get_text0(_event.data.mapping_start.tag)
+                if text == NULL:
+                    raise MemoryError
+                tagp = PyUnicode_FromString(text)
+
+            if PY_MAJOR_VERSION < 3:
+                implicit = (tagp is None or tagp == u'!')
+            else:
+                implicit = (tagp is None or tagp == '!')
+
+            flow_style = None
+            nstyle = fy_event_get_node_style(event)
+            if nstyle == FYNS_FLOW:
+                flow_style = True
+            elif nstyle == FYNS_BLOCK:
+                flow_style = False
+
+            return MappingStartEvent(anchor, tagp, implicit, start_markp, end_markp, flow_style)
+
+        if type == FYET_SEQUENCE_END:
+            return SequenceEndEvent(start_markp, end_markp)
+
+        if type == FYET_MAPPING_END:
+            return MappingEndEvent(start_markp, end_markp)
+
+        if PY_MAJOR_VERSION < 3:
+            raise ValueError("unknown event type")
+        else:
+            raise ValueError(u"unknown event type")
 
     def get_event(self):
-        # print "get_event"
-        # if self.current_event is not None:
-        #     value = self.current_event
-        #     self.current_event = None
-        # else:
-        #     value = self._parse()
-        # return value
-        return None
+        if self.current_event is not None:
+            value = self.current_event
+            self.current_event = None
+        else:
+            value = self._parse()
+        return value
 
     def peek_event(self):
-        # print "peek_event"
-        # if self.current_event is None:
-        #     self.current_event = self._parse()
-        # return self.current_event
-        return None
-     
+        if self.current_event is None:
+            self.current_event = self._parse()
+        return self.current_event
+
     def check_event(self, *choices):
-        # print "check_event"
-        # if self.current_event is None:
-        #     self.current_event = self._parse()
-        # if self.current_event is None:
-        #     return False
-        # if not choices:
-        #     return True
-        # event_class = self.current_event.__class__
-        # for choice in choices:
-        #     if event_class is choice:
-        #         return True
-        # return False
+        if self.current_event is None:
+            self.current_event = self._parse()
+        if self.current_event is None:
+            return False
+        if not choices:
+            return True
+        event_class = self.current_event.__class__
+        for choice in choices:
+            if event_class is choice:
+                return True
         return False
-    
+
     def check_node(self):
-        # print "check_node"
-        # self._parse_next_event()
-        # if self.parsed_event.type == YAML_STREAM_START_EVENT:
-        #     yaml_event_delete(&self.parsed_event)
-        #     self._parse_next_event()
-        # if self.parsed_event.type != YAML_STREAM_END_EVENT:
-        #     return True
-        # return False
+        self._parse_next_event()
+        if self.parsed_event.type == FYET_STREAM_START:
+            fy_parser_event_free(self.parser, self.parsed_event)
+            self.parsed_event = NULL
+            self._parsed_event = NULL
+            self._parse_next_event()
+        if self.parsed_event.type != FYET_STREAM_END:
+            return True
         return False
 
     def get_node(self):
@@ -611,23 +818,23 @@ cdef class CParser:
             raise ComposerError("Parser not producing document end")
         # print "got FYET_DOCUMENT_END"
         self._parse_free_event()
-        
+
         self._parse_next_event()
         if self.parsed_event.type == FYET_STREAM_END:
             # print "got FYET_STREAM_END"
             self._parse_free_event()
             return node
-         
+
         if self.parsed_event.type != FYET_DOCUMENT_START:
             raise ComposerError("Parser not producing document start (on error)")
 
         # multi document
         start_mark = fy_event_start_mark(self.parsed_event)
-        mark = Mark(self.stream_name,
-                start_mark[0].input_pos,
-                start_mark[0].line,
-                start_mark[0].column,
-                None, None)
+        if start_mark != NULL:
+            mark = Mark(self.stream_name, start_mark[0].input_pos, start_mark[0].line, start_mark[0].column, None, None)
+        else:
+            mark = None
+
         if PY_MAJOR_VERSION < 3:
             raise ComposerError("expected a single document in the stream",
                     document.start_mark, "but found another document", mark)
@@ -984,7 +1191,7 @@ cdef class CEmitter:
         #     if hasattr(stream, u'encoding'):
         #         self.dump_unicode = 1
         # self.use_encoding = encoding
-        # yaml_emitter_set_output(&self.emitter, output_handler, <void *>self)    
+        # yaml_emitter_set_output(&self.emitter, output_handler, <void *>self)
         # if canonical:
         #     yaml_emitter_set_canonical(&self.emitter, 1)
         # if indent is not None:
