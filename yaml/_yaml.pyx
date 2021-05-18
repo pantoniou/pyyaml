@@ -117,7 +117,7 @@ cdef class CParser:
 
         memset(&cfg, 0, sizeof(cfg))
         cfg.search_path = ""
-        cfg.flags = FYPCF_QUIET
+        cfg.flags = <fy_parse_cfg_flags>(FYPCF_QUIET | FYPCF_DEFAULT_VERSION_1_1 | FYPCF_SLOPPY_FLOW_INDENTATION)
 
         self.parser = fy_parser_create(&cfg)
         if self.parser == NULL:
@@ -253,14 +253,26 @@ cdef class CParser:
 
     cdef object _scan(self):
         cdef fy_token *token
+        cdef const fy_mark *start_mark
+        cdef const fy_mark *end_mark
 
-        token = fy_scan(self.parser)
-        if token == NULL:
-            return None
-            if PY_MAJOR_VERSION < 3:
-                raise ReaderError(self.stream_name, 0, 0, '?', "problem")
-            else:
-                raise ReaderError(self.stream_name, 0, 0, u'?', PyUnicode_FromString("problem"))
+        while True:
+            token = fy_scan(self.parser)
+            if token == NULL:
+                return None
+                if PY_MAJOR_VERSION < 3:
+                    raise ReaderError(self.stream_name, 0, 0, '?', "problem")
+                else:
+                    raise ReaderError(self.stream_name, 0, 0, u'?', PyUnicode_FromString("problem"))
+
+            type = fy_token_get_type(token)
+            if type != FYTT_VALUE:
+                break
+            start_mark = fy_token_start_mark(token)
+            end_mark = fy_token_end_mark(token)
+            # remove from the token stream the NULL value
+            if start_mark[0].input_pos != end_mark[0].input_pos:
+                break
 
         token_object = self._token_to_object(token)
         fy_scan_token_free(self.parser, token)

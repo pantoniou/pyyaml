@@ -86,6 +86,11 @@ cdef extern from "_yaml.h":
         FYPCF_DISABLE_DEPTH_LIMIT   =  64    # FY_BIT(6)
         FYPCF_DISABLE_ACCELERATORS  = 128    # FY_BIT(7)
         FYPCF_DISABLE_BUFFERING     = 256    # FY_BIT(8)
+        FYPCF_DEFAULT_VERSION_AUTO	=      0 # 0 << 9
+        FYPCF_DEFAULT_VERSION_1_1	=    512 # 1 << 9
+        FYPCF_DEFAULT_VERSION_1_2	=   1024 # 2 << 9
+        FYPCF_DEFAULT_VERSION_1_3	=   1536 # 3 << 9
+        FYPCF_SLOPPY_FLOW_INDENTATION = 16384 # FY_BIT(14)
         FYPCF_JSON_AUTO             =      0 # 0 << 16
         FYPCF_JSON_NONE             =  65536 # 1 << 16
         FYPCF_JSON_FORCE            = 131072 # 2 << 16
